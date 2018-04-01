@@ -1,23 +1,26 @@
-# min_mkn-mod
+# conan.install
 
-**Minimal Dynimically loaded maiken module ** 
+**Conan.io Plugin for Windows Binary packes** 
 
 ## Prerequisites
   [maiken](https://github.com/Dekken/maiken)
-  
 
-## Usage
+
+## Example use case
+
+https://github.com/mkn/mkn.ram/blob/master/mkn.yaml#L32
+
+
+## Building
   
   Windows cl:
 
-    mkn clean build -tSa -EHsc -dp test
-  	mkn clean build -tSa -EHsc 
-  	mkn run -p test
+    mkn clean build -tSa -EHsc -d
 
 
-  Linux gcc:
+## Testing
+  
+  Windows cl:
 
-    mkn clean build -tSa "-O2 -fPIC" -dp test -l "-pthread -ldl"
-    mkn clean build -tSa "-O2 -fPIC" -l "-pthread -ldl"
-    mkn run -p test
-    
+    mkn clean build -tSa -EHsc -dp test run
+

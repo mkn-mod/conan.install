@@ -19,3 +19,12 @@ profile:
   - name: test
     parent: base
     main: test.cpp
+
+  - name: format
+    mod:
+    - name: clang.format
+      arg:
+        init:
+          style: google
+          types: cpp:cxx:cc:h:hpp
+          paths: .
