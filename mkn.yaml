@@ -23,8 +23,7 @@ profile:
   - name: format
     mod:
     - name: clang.format
-      arg:
-        init:
-          style: google
-          types: cpp:cxx:cc:h:hpp
-          paths: .
+      init:
+        style: google
+        types: cpp:cxx:cc:h:hpp
+        paths: .
