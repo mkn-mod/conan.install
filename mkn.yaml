@@ -1,29 +1,27 @@
-
+#! clean build -dtO
 
 name: conan.install
+version: master
+property:
+    maiken_location: ${MKN_HOME}/app/mkn/${version}
+    maiken_scm: https://github.com/mkn/mkn
 
 parent: base
 src: mod.cpp
-if_arg:
+mode: shared
+
+profile:
+- name: base
+  dep: mkn&${maiken_location}(${maiken_scm})[mod]
+  if_arg:
     win_shared: -DYAML_CPP_DLL
     shared: -DKUL_SHARED
 
-profile:
-  - name: base
-    mode: shared
-    dep:
-      - name: mkn
-        profile: mod
-        local: ${MKN_HOME}/app/mkn/master
+- name: test
+  parent: base
+  main: test.cpp
+  dep: mkn&${maiken_location}(${maiken_scm})[lib]
 
-  - name: test
-    parent: base
-    main: test.cpp
-
-  - name: format
-    mod:
-    - name: clang.format
-      init:
-        style: google
-        types: cpp:cxx:cc:h:hpp
-        paths: .
+- name: format
+  mod: |
+    clang.format{init:{style: google, paths: .}}
