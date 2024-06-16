@@ -30,6 +30,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "maiken/module/init.hpp"
 
+#include "mkn/kul/io.hpp"
+#include "mkn/kul/string.hpp"
+#include <string>
+
 namespace mkn {
 namespace mod {
 namespace conan_io {
@@ -71,6 +75,32 @@ private:
   }
   std::string python_exe = "python";
 
+  auto parse_cmake_var(std::string const& find, std::string const& s){
+    std::vector<std::string> data;
+    std::size_t const offset = s.find(find) + find.size() + 1;
+    auto const line = s.substr(offset, s.size() - offset);
+    for(auto const& b: kul::String::ESC_SPLIT(line, ' '))
+      data.emplace_back(b.substr(1, b.size() - 2));
+    for(auto& l : data)
+      if(l[l.size() - 1] == '"') l = l.substr(0, l.size() - 1);
+    return data;
+  }
+
+  auto parse_for_lib_and_incs(kul::File const& toolChainFile){
+    kul::io::Reader r(toolChainFile);
+    std::vector<std::string> inc, lib;
+    char const* c = nullptr;
+    while ((c = r.readLine())) {
+      std::string str = c;
+      if(inc.size() == 0 && str.find("CMAKE_INCLUDE_PATH") != std::string::npos)
+        inc = parse_cmake_var("CMAKE_INCLUDE_PATH", str);
+      if(lib.size() == 0 && str.find("CMAKE_LIBRARY_PATH") != std::string::npos)
+        lib = parse_cmake_var("CMAKE_LIBRARY_PATH", str);
+      if(inc.size() && lib.size()) break;
+    }
+    return std::make_tuple(inc, lib);
+  }
+
 public:
   InstallModule() {
     std::string py(kul::env::GET("PYTHON"));
@@ -84,6 +114,11 @@ public:
     kul::File conanFile("conanfile.txt", a.project().dir());
     if (!conanFile)
       return;
+
+    kul::Dir buildDir{"build", a.project().dir()};
+    kul::Dir generatorDir{"generators", buildDir};
+    kul::File conanToolChainFile("conan_toolchain.cmake", generatorDir);
+
     ConanFile &cFile(cfm.get_or_create(conanFile));
     kul::io::Reader rdr(conanFile);
 
@@ -104,30 +139,35 @@ public:
           KEXCEPTION("conanFile is invalid");
         auto bits = kul::String::SPLIT(s, "/");
         kul::Dir conan_dir = kul::user::home(".conan/data");
-        kul::Dir req_dir(bits[0] + "/" + bits[1] + "/package", conan_dir);
-        if (!req_dir) {
+
+        if (!conanToolChainFile) {
           std::string install = node["install"] ? node["install"].Scalar() : "";
           kul::os::PushDir pdir(a.project().dir());
           kul::Process p(python_exe);
-          p << "-m conans.conan install" << install << ".";
+          p << "-m conans.conan install" << install << ". --build=missing";
           p.start();
         }
-        auto req_dirs(req_dir.dirs());
-        if (req_dirs.size() != 1)
-          KEXCEPTION("conan data is inconsistent");
-        kul::Dir req_home(req_dirs[0]);
-        kul::Dir req_include("include", req_home);
-        kul::Dir req_lib("lib", req_home);
-        if (req_include) {
-          a.addInclude(req_include.escr());
-          for (auto *rep : a.revendencies())
-            rep->addInclude(req_include.escr());
+
+        auto const& [inc, lib] = parse_for_lib_and_incs(conanToolChainFile);
+
+        for(auto const& d : inc){
+          kul::Dir req_include(d);
+          if (req_include) {
+            a.addInclude(req_include.escr());
+            for (auto *rep : a.revendencies())
+              rep->addInclude(req_include.escr());
+          }
         }
-        if (req_lib) {
-          a.addLibpath(req_lib.escr());
-          for (auto *rep : a.revendencies())
-            rep->addLibpath(req_lib.escr());
+
+        for(auto const& d : lib){
+          kul::Dir req_lib(d);
+          if (req_lib) {
+            a.addLibpath(req_lib.escr());
+            for (auto *rep : a.revendencies())
+              rep->addLibpath(req_lib.escr());
+          }
         }
+
       }
     }
   }
