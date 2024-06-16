@@ -30,11 +30,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "maiken/module/init.hpp"
 
-namespace mkn { namespace mod { namespace conan_io {
+namespace mkn {
+namespace mod {
+namespace conan_io {
 
 class Exception : public kul::Exception {
- public:
-  Exception(const char* f, const uint16_t& l, const std::string& s)
+public:
+  Exception(const char *f, const uint16_t &l, const std::string &s)
       : kul::Exception(f, l, s) {}
 };
 
@@ -42,9 +44,9 @@ class InstallModule;
 class Validater {
   friend class InstallModule;
 
- private:
+private:
   std::unordered_map<std::string, bool> is_valid;
-  bool exists_or_is_valid(const std::string& s) {
+  bool exists_or_is_valid(const std::string &s) {
     return is_valid.count(s) && is_valid[s];
   }
 };
@@ -57,34 +59,36 @@ class ConanFileMan {
 
   std::unordered_map<std::string, ConanFile> files;
 
-  ConanFile& get_or_create(const kul::File& file) { return files[file.real()]; }
+  ConanFile &get_or_create(const kul::File &file) { return files[file.real()]; }
 };
 
 class InstallModule : public maiken::Module {
- private:
+private:
   ConanFileMan cfm;
-  static void VALIDATE_NODE(const YAML::Node& node) {
+  static void VALIDATE_NODE(YAML::Node const &node) {
     using namespace kul::yaml;
     Validator({NodeValidator("install")}).validate(node);
   }
   std::string python_exe = "python";
 
- public:
+public:
   InstallModule() {
     std::string py(kul::env::GET("PYTHON"));
-    if (!py.empty()) python_exe = py;
+    if (!py.empty())
+      python_exe = py;
   }
-  void init(maiken::Application& a, const YAML::Node& node)
+  void init(maiken::Application &a, YAML::Node const &node)
       KTHROW(std::exception) override {
     VALIDATE_NODE(node);
 
     kul::File conanFile("conanfile.txt", a.project().dir());
-    if (!conanFile) return;
-    ConanFile& cFile(cfm.get_or_create(conanFile));
+    if (!conanFile)
+      return;
+    ConanFile &cFile(cfm.get_or_create(conanFile));
     kul::io::Reader rdr(conanFile);
 
     std::string s;
-    const char* line = 0;
+    const char *line = 0;
     bool read = 0;
     while ((line = rdr.readLine())) {
       s = line;
@@ -93,16 +97,12 @@ class InstallModule : public maiken::Module {
         read = 1;
         continue;
       }
-      if (read && s[0] == '[') break;
+      if (read && s[0] == '[')
+        break;
       if (read) {
-        if (s.find("@") == std::string::npos)
+        if (s.find("/") == std::string::npos)
           KEXCEPTION("conanFile is invalid");
-        auto bits = kul::String::SPLIT(s, "@");
-        for (const auto& bit : bits)
-          if (bit.find("/") == std::string::npos)
-            KEXCEPTION("conanFile is invalid");
-        auto left = kul::String::SPLIT(bits[0], "/");
-        auto right = kul::String::SPLIT(bits[1], "/");
+        auto bits = kul::String::SPLIT(s, "/");
         kul::Dir conan_dir = kul::user::home(".conan/data");
         kul::Dir req_dir(bits[0] + "/" + bits[1] + "/package", conan_dir);
         if (!req_dir) {
@@ -113,43 +113,47 @@ class InstallModule : public maiken::Module {
           p.start();
         }
         auto req_dirs(req_dir.dirs());
-        if (req_dirs.size() != 1) KEXCEPTION("conan data is inconsistent");
+        if (req_dirs.size() != 1)
+          KEXCEPTION("conan data is inconsistent");
         kul::Dir req_home(req_dirs[0]);
         kul::Dir req_include("include", req_home);
         kul::Dir req_lib("lib", req_home);
         if (req_include) {
           a.addInclude(req_include.escr());
-          for (auto* rep : a.revendencies())
+          for (auto *rep : a.revendencies())
             rep->addInclude(req_include.escr());
         }
         if (req_lib) {
           a.addLibpath(req_lib.escr());
-          for (auto* rep : a.revendencies()) rep->addLibpath(req_lib.escr());
+          for (auto *rep : a.revendencies())
+            rep->addLibpath(req_lib.escr());
         }
       }
     }
   }
-  void link(maiken::Application& a, const YAML::Node& node)
+  void link(maiken::Application &a, YAML::Node const &node)
       KTHROW(std::exception) override {
     kul::File conanFile("conanfile.txt", a.project().dir());
-    if (!conanFile) return;
-    ConanFile& cFile(cfm.get_or_create(conanFile));
+    if (!conanFile)
+      return;
+    ConanFile &cFile(cfm.get_or_create(conanFile));
   }
-  void pack(maiken::Application& a, const YAML::Node& node)
+  void pack(maiken::Application &a, YAML::Node const &node)
       KTHROW(std::exception) override {
     kul::File conanFile("conanfile.txt", a.project().dir());
-    if (!conanFile) return;
-    ConanFile& cFile(cfm.get_or_create(conanFile));
+    if (!conanFile)
+      return;
+    ConanFile &cFile(cfm.get_or_create(conanFile));
   }
 };
-}  // namespace conan_io
-}  // namespace mod
-}  // namespace mkn
+} // namespace conan_io
+} // namespace mod
+} // namespace mkn
 
-extern "C" KUL_PUBLISH maiken::Module* maiken_module_construct() {
+extern "C" KUL_PUBLISH maiken::Module *maiken_module_construct() {
   return new mkn ::mod ::conan_io ::InstallModule;
 }
 
-extern "C" KUL_PUBLISH void maiken_module_destruct(maiken::Module* p) {
+extern "C" KUL_PUBLISH void maiken_module_destruct(maiken::Module *p) {
   delete p;
 }
