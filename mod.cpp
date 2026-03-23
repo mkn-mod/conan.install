@@ -190,10 +190,10 @@ public:
 } // namespace mod
 } // namespace mkn
 
-extern "C" KUL_PUBLISH maiken::Module *maiken_module_construct() {
+extern "C" MKN_KUL_PUBLISH maiken::Module *maiken_module_construct() {
   return new mkn ::mod ::conan_io ::InstallModule;
 }
 
-extern "C" KUL_PUBLISH void maiken_module_destruct(maiken::Module *p) {
+extern "C" MKN_KUL_PUBLISH void maiken_module_destruct(maiken::Module *p) {
   delete p;
 }
