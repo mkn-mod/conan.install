@@ -1,3 +1,4 @@
+
 name: build
 
 concurrency:
@@ -6,6 +7,8 @@ concurrency:
 
 env:
   MKN_KUL_GIT_CO: --depth 1
+  CURL_GET: curl -fL --retry 3 --retry-delay 2
+  PATH_GET: https://github.com/mkn/mkn/releases/download/latest
 
 on:
   push:
@@ -18,42 +21,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-
-    - env:
-        MKN_LIB_LINK_LIB: 1
-      run: |
-        curl -Lo mkn https://github.com/mkn/mkn/releases/download/latest/mkn_nix
-        chmod +x mkn
+    - run: |
+        $CURL_GET -o mkn ${PATH_GET}/mkn_nix && chmod +x mkn
         KLOG=2 ./mkn clean build run -dtOa "-std=c++20 -fPIC"
-        KLOG=2 ./mkn clean build run -dtOa "-std=c++20 -fPIC" -p test
+        KLOG=2 ./mkn build run -dtOa "-std=c++20 -fPIC" -p test
 
   macos:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
-
-    - env:
-        MKN_LIB_LINK_LIB: 1
-      run: |
-        curl -Lo mkn https://github.com/mkn/mkn/releases/download/latest/mkn_arm_osx
-        chmod +x mkn
+    - run: |
+        $CURL_GET -o mkn ${PATH_GET}/mkn_arm_osx && chmod +x mkn
         KLOG=2 ./mkn clean build run -dtOa "-std=c++20 -fPIC"
-        KLOG=2 ./mkn clean build run -tOa "-std=c++20 -fPIC" -p test
+        KLOG=2 ./mkn build run -tOa "-std=c++20 -fPIC" -p test
 
   windows:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v4
-
     - uses: ilammy/msvc-dev-cmd@v1
       with:
         arch: amd64
-
-    - env:
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.12.5'
+    - shell: cmd
+      env:
         MKN_CL_PREFERRED: 1
-      shell: cmd
+        KLOG: 5
+        PYTHON: python
       run: | # /bin/link interferes with cl/link.exe
         bash -c "rm /bin/link"
-        bash -c 'curl -Lo mkn.exe https://github.com/mkn/mkn/releases/download/latest/mkn.exe'
-        bash -c 'KLOG=2 ./mkn clean build run -dtOa "-EHsc -std:c++20"'
-        bash -c 'KLOG=2 ./mkn clean build run -tOa "-EHsc -std:c++20" -p test'
+        bash -c "python3 -m pip install conan -U && python3 -m conans.conan profile detect"
+        copy res\win\conanfile.txt conanfile.txt
+        %CURL_GET% -o mkn.exe %PATH_GET%/mkn.exe
+        bash -c './mkn -v'
+        bash -c './mkn clean build run -dtOa "-EHsc -std:c++20"'
+        bash -c './mkn build run -tOa "-EHsc -std:c++20" -p test'

@@ -3,7 +3,7 @@
 **Conan.io Plugin for Windows Binary packes** 
 
 ## Prerequisites
-  [maiken](https://github.com/Dekken/maiken)
+  [maiken](https://github.com/mkn/mkn)
 
 
 ## Example use case
