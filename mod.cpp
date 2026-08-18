@@ -28,10 +28,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include "maiken/module/init.hpp"  // IWYU pragma: keep
+#include "mkn/mod/init.hpp"  // IWYU pragma: keep
 
 #include "mkn/kul/io.hpp"
+#include "mkn/kul/os.hpp"
+#include "mkn/kul/proc.hpp"
 #include "mkn/kul/string.hpp"
+#include "mkn/kul/yaml.hpp"
 
 #include <string>
 
@@ -62,14 +65,81 @@ class ConanFileMan {
   ConanFile& get_or_create(kul::File const& file) { return files[file.real()]; }
 };
 
-class InstallModule : public maiken::Module {
+class InstallModule : public mkn::mod::Module {
+ public:
+  void init(mkn::mod::Context& a, YAML::Node const& node) override {
+    try {
+      init_(a, node);
+    } catch (kul::Exception const& e) {
+      KLOG(ERR) << e.what();
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    } catch (std::exception const& e) {
+      KERR << e.what();
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    } catch (...) {
+      KERR << "conan.install: UNKNOWN EXCEPTION TYPE CAUGHT in init()";
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    }
+  }
+  void link(mkn::mod::Context& a, YAML::Node const& node) override {
+    try {
+      kul::File conanFile("conanfile.txt", a.state().projectDir);
+      if (!conanFile) return;
+      ConanFile& cFile(cfm.get_or_create(conanFile));
+    } catch (kul::Exception const& e) {
+      KLOG(ERR) << e.what();
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    } catch (std::exception const& e) {
+      KERR << e.what();
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    } catch (...) {
+      KERR << "conan.install: UNKNOWN EXCEPTION TYPE CAUGHT in link()";
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    }
+  }
+  void pack(mkn::mod::Context& a, YAML::Node const& node) override {
+    try {
+      kul::File conanFile("conanfile.txt", a.state().projectDir);
+      if (!conanFile) return;
+      ConanFile& cFile(cfm.get_or_create(conanFile));
+    } catch (kul::Exception const& e) {
+      KLOG(ERR) << e.what();
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    } catch (std::exception const& e) {
+      KERR << e.what();
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    } catch (...) {
+      KERR << "conan.install: UNKNOWN EXCEPTION TYPE CAUGHT in pack()";
+      std::cout.flush();
+      std::cerr.flush();
+      std::exit(1);
+    }
+  }
+
  private:
   ConanFileMan cfm;
+  std::string const python_exe = kul::env::GET("PYTHON", "python3");
+
   static void VALIDATE_NODE(YAML::Node const& node) {
     using namespace kul::yaml;
     Validator({NodeValidator("install")}).validate(node);
   }
-  std::string python_exe = "python";
 
   auto parse_cmake_var(std::string const& find, std::string const& s) {
     std::vector<std::string> data;
@@ -97,18 +167,15 @@ class InstallModule : public maiken::Module {
     return std::make_tuple(inc, lib);
   }
 
- public:
-  InstallModule() {
-    std::string py(kul::env::GET("PYTHON"));
-    if (!py.empty()) python_exe = py;
-  }
-  void init(maiken::Application& a, YAML::Node const& node) KTHROW(std::exception) override {
+  void init_(mkn::mod::Context& a, YAML::Node const& node) {
     VALIDATE_NODE(node);
 
-    kul::File conanFile("conanfile.txt", a.project().dir());
+    auto const& projectDir = a.state().projectDir;
+
+    kul::File conanFile("conanfile.txt", projectDir);
     if (!conanFile) return;
 
-    kul::Dir buildDir{"build", a.project().dir()};
+    kul::Dir buildDir{"build", kul::Dir(projectDir)};
     kul::Dir generatorDir{"generators", buildDir};
     kul::File conanToolChainFile("conan_toolchain.cmake", generatorDir);
 
@@ -133,7 +200,7 @@ class InstallModule : public maiken::Module {
 
         if (!conanToolChainFile) {
           std::string install = node["install"] ? node["install"].Scalar() : "";
-          kul::os::PushDir pdir(a.project().dir());
+          kul::os::PushDir pdir(projectDir);
           kul::Process p(python_exe);
           p << "-m conans.conan install" << install << ". --build=missing";
           p.start();
@@ -144,37 +211,29 @@ class InstallModule : public maiken::Module {
         for (auto const& d : inc) {
           kul::Dir req_include(d);
           if (req_include) {
-            a.addInclude(req_include.escr());
-            for (auto* rep : a.revendencies()) rep->addInclude(req_include.escr());
+            a.compilerState().add(IncludeInput(req_include.escr()));
+            for (auto* dep : a.state().dependents)
+              dep->compilerState().add(IncludeInput(req_include.escr()));
           }
         }
 
         for (auto const& d : lib) {
           kul::Dir req_lib(d);
           if (req_lib) {
-            a.addLibpath(req_lib.escr());
-            for (auto* rep : a.revendencies()) rep->addLibpath(req_lib.escr());
+            a.compilerState().add(LibPathInput(req_lib.escr()));
+            for (auto* dep : a.state().dependents)
+              dep->compilerState().add(LibPathInput(req_lib.escr()));
           }
         }
       }
     }
   }
-  void link(maiken::Application& a, YAML::Node const& node) KTHROW(std::exception) override {
-    kul::File conanFile("conanfile.txt", a.project().dir());
-    if (!conanFile) return;
-    ConanFile& cFile(cfm.get_or_create(conanFile));
-  }
-  void pack(maiken::Application& a, YAML::Node const& node) KTHROW(std::exception) override {
-    kul::File conanFile("conanfile.txt", a.project().dir());
-    if (!conanFile) return;
-    ConanFile& cFile(cfm.get_or_create(conanFile));
-  }
 };
 
 }  // namespace mkn::mod::conan_io
 
-extern "C" MKN_KUL_PUBLISH maiken::Module* maiken_module_construct() {
+extern "C" MKN_KUL_PUBLISH mkn::mod::Module* maiken_module_construct() {
   return new mkn ::mod ::conan_io ::InstallModule;
 }
 
-extern "C" MKN_KUL_PUBLISH void maiken_module_destruct(maiken::Module* p) { delete p; }
+extern "C" MKN_KUL_PUBLISH void maiken_module_destruct(mkn::mod::Module* p) { delete p; }

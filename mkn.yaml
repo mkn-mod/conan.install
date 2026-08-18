@@ -2,9 +2,6 @@
 
 name: conan.install
 version: master
-property:
-    maiken_location: ${MKN_HOME}/app/mkn/${version}
-    maiken_scm: https://github.com/mkn/mkn
 
 parent: base
 src: mod.cpp
@@ -12,15 +9,20 @@ mode: shared
 
 profile:
 - name: base
-  dep: mkn&${maiken_location}(${maiken_scm})[mod]
+  with: mkn.mod
+  if_dep:
+    bsd: parse.yaml[lib]
+    win: parse.yaml[lib]
   if_arg:
-    win_static: -DYAML_CPP_STATIC_DEFINE
     shared: -DMKN_KUL_SHARED
+    win: -DYAML_CPP_STATIC_DEFINE
 
 - name: test
   parent: base
   main: test.cpp
-  dep: mkn&${maiken_location}(${maiken_scm})[lib]
+  dep: parse.yaml[lib]
+  if_arg:
+    win: -DYAML_CPP_STATIC_DEFINE
 
 - name: format
   mod: |
