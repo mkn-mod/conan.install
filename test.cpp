@@ -66,7 +66,7 @@ int main() {
   mkn::kul::Signal sig;
   try {
     YAML::Node node = mkn::kul::yaml::String(yArgs).root();
-    mkn::mod::Loader loader(find_module());
+    mkn::mod::Loader loader(find_module().real());
     FakeContext ctx;
     loader.module()->init(ctx, node);
     loader.module()->compile(ctx, node);
