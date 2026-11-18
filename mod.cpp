@@ -153,7 +153,7 @@ class InstallModule : public mkn::mod::Module {
   }
 
   auto parse_for_lib_and_incs(kul::File const& toolChainFile) {
-    kul::io::Reader r(toolChainFile);
+    kul::io::Reader r(toolChainFile.full());
     std::vector<std::string> inc, lib;
     char const* c = nullptr;
     while ((c = r.readLine())) {
@@ -180,7 +180,7 @@ class InstallModule : public mkn::mod::Module {
     kul::File conanToolChainFile("conan_toolchain.cmake", generatorDir);
 
     ConanFile& cFile(cfm.get_or_create(conanFile));
-    kul::io::Reader rdr(conanFile);
+    kul::io::Reader rdr(conanFile.full());
 
     std::string s;
     char const* line = 0;

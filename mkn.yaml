@@ -15,14 +15,14 @@ profile:
     win: parse.yaml[lib]
   if_arg:
     shared: -DMKN_KUL_SHARED
-    win: -DYAML_CPP_STATIC_DEFINE
+    win_static: -DYAML_CPP_STATIC_DEFINE
 
 - name: test
   parent: base
   main: test.cpp
   dep: parse.yaml[lib]
   if_arg:
-    win: -DYAML_CPP_STATIC_DEFINE
+    win_static: -DYAML_CPP_STATIC_DEFINE
 
 - name: format
   mod: |
