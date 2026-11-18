@@ -49,10 +49,11 @@ jobs:
       env:
         MKN_CL_PREFERRED: 1
         KLOG: 5
-        PYTHON: python
+        PYTHON: ${{ env.pythonLocation }}\python.exe
       run: | # /bin/link interferes with cl/link.exe
         bash -c "rm /bin/link"
-        bash -c "python3 -m pip install conan -U && python3 -m conans.conan profile detect"
+        "%PYTHON%" -m pip install conan -U
+        "%PYTHON%" -m conans.conan profile detect
         copy res\win\conanfile.txt conanfile.txt
         %CURL_GET% -o mkn.exe %PATH_GET%/mkn.exe
         bash -c './mkn -v'
