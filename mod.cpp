@@ -195,8 +195,6 @@ class InstallModule : public mkn::mod::Module {
       if (read && s[0] == '[') break;
       if (read) {
         if (s.find("/") == std::string::npos) KEXCEPTION("conanFile is invalid");
-        auto bits = kul::String::SPLIT(s, "/");
-        kul::Dir conan_dir = kul::user::home(".conan/data");
 
         if (!conanToolChainFile) {
           std::string install = node["install"] ? node["install"].Scalar() : "";
