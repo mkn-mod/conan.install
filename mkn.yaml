@@ -10,19 +10,17 @@ mode: shared
 profile:
 - name: base
   with: mkn.mod
-  if_dep:
+  if_dep:  # Windows modules share yaml-cpp as a DLL, -K can't make it static
     bsd: parse.yaml[lib]
-    win: parse.yaml[lib]
+    win: parse.yaml[shared]
   if_arg:
     shared: -DMKN_KUL_SHARED
-    win_static: -DYAML_CPP_STATIC_DEFINE
 
 - name: test
   parent: base
   main: test.cpp
-  dep: parse.yaml[lib]
-  if_arg:
-    win_static: -DYAML_CPP_STATIC_DEFINE
+  if_dep:
+    nix: parse.yaml[lib]
 
 - name: format
   mod: |
