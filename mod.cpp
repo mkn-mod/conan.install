@@ -29,12 +29,12 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "mkn/mod/init.hpp"  // IWYU pragma: keep
+#include "mkn/kul/bon.hpp"
 
 #include "mkn/kul/io.hpp"
 #include "mkn/kul/os.hpp"
 #include "mkn/kul/proc.hpp"
 #include "mkn/kul/string.hpp"
-#include "mkn/kul/yaml.hpp"
 
 #include <string>
 
@@ -67,7 +67,7 @@ class ConanFileMan {
 
 class InstallModule : public mkn::mod::Module {
  public:
-  void init(mkn::mod::Context& a, YAML::Node const& node) override {
+  void init(mkn::mod::Context& a, mkn::mod::Node const& node) override {
     try {
       init_(a, node);
     } catch (kul::Exception const& e) {
@@ -87,7 +87,7 @@ class InstallModule : public mkn::mod::Module {
       std::exit(1);
     }
   }
-  void link(mkn::mod::Context& a, YAML::Node const& node) override {
+  void link(mkn::mod::Context& a, mkn::mod::Node const& node) override {
     try {
       kul::File conanFile("conanfile.txt", a.state().projectDir);
       if (!conanFile) return;
@@ -109,7 +109,7 @@ class InstallModule : public mkn::mod::Module {
       std::exit(1);
     }
   }
-  void pack(mkn::mod::Context& a, YAML::Node const& node) override {
+  void pack(mkn::mod::Context& a, mkn::mod::Node const& node) override {
     try {
       kul::File conanFile("conanfile.txt", a.state().projectDir);
       if (!conanFile) return;
@@ -136,9 +136,8 @@ class InstallModule : public mkn::mod::Module {
   ConanFileMan cfm;
   std::string const python_exe = kul::env::GET("PYTHON", "python3");
 
-  static void VALIDATE_NODE(YAML::Node const& node) {
-    using namespace kul::yaml;
-    Validator({NodeValidator("install")}).validate(node);
+  static void VALIDATE_NODE(mkn::mod::Node const& node) {
+    mkn::kul::bon::validate(node, {"install"});
   }
 
   auto parse_cmake_var(std::string const& find, std::string const& s) {
@@ -167,7 +166,7 @@ class InstallModule : public mkn::mod::Module {
     return std::make_tuple(inc, lib);
   }
 
-  void init_(mkn::mod::Context& a, YAML::Node const& node) {
+  void init_(mkn::mod::Context& a, mkn::mod::Node const& node) {
     VALIDATE_NODE(node);
 
     auto const& projectDir = a.state().projectDir;
@@ -197,7 +196,7 @@ class InstallModule : public mkn::mod::Module {
         if (s.find("/") == std::string::npos) KEXCEPTION("conanFile is invalid");
 
         if (!conanToolChainFile) {
-          std::string install = node["install"] ? node["install"].Scalar() : "";
+          std::string install = node.find("install") ? node["install"].str() : "";
           kul::os::PushDir pdir(projectDir);
           kul::Process p(python_exe);
           p << "-m conans.conan install" << install << ". --build=missing";
