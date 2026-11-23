@@ -1,6 +1,9 @@
 #! clean build -dtO
 
 name: conan.install
+property:
+  # dependency versions: master on master, latest on latest (a bare dep is the default branch)
+  parse.yaml.version: master
 version: master
 
 parent: base
@@ -11,8 +14,8 @@ profile:
 - name: base
   with: mkn.mod
   if_dep:  # Windows modules share yaml-cpp as a DLL, -K can't make it static
-    bsd: parse.yaml[lib]
-    win: parse.yaml[shared]
+    bsd: parse.yaml#${parse.yaml.version}[lib]
+    win: parse.yaml#${parse.yaml.version}[shared]
   if_arg:
     shared: -DMKN_KUL_SHARED
 
@@ -20,8 +23,8 @@ profile:
   parent: base
   main: test.cpp
   if_dep:
-    nix: parse.yaml[lib]
+    nix: parse.yaml#${parse.yaml.version}[lib]
 
 - name: format
   mod: |
-    clang.format{init:{style: google, paths: .}}
+    clang.format#master{init:{style: google, paths: .}}
