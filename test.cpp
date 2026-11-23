@@ -2,7 +2,6 @@
 #include "mkn/kul/defs.hpp"
 #include "mkn/kul/os.hpp"
 #include "mkn/kul/signal.hpp"
-#include "mkn/kul/yaml.hpp"
 #include "mkn/mod/loader.hpp"
 
 #if MKN_KUL_IS_WIN
@@ -65,7 +64,7 @@ int main() {
   KOUT(NON) << __FILE__;
   mkn::kul::Signal sig;
   try {
-    YAML::Node node = mkn::kul::yaml::String(yArgs).root();
+    auto const node = yArgs.empty() ? mkn::mod::Node{} : mkn::kul::bon::parse("{" + yArgs + "}");
     mkn::mod::Loader loader(find_module().real());
     FakeContext ctx;
     loader.module()->init(ctx, node);

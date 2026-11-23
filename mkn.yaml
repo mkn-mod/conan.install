@@ -3,7 +3,7 @@
 name: conan.install
 property:
   # dependency versions: master on master, latest on latest (a bare dep is the default branch)
-  parse.yaml.version: master
+  mkn.mod.version: master
 version: master
 
 parent: base
@@ -12,18 +12,13 @@ mode: shared
 
 profile:
 - name: base
-  with: mkn.mod
-  if_dep:  # Windows modules share yaml-cpp as a DLL, -K can't make it static
-    bsd: parse.yaml#${parse.yaml.version}[lib]
-    win: parse.yaml#${parse.yaml.version}[shared]
+  with: mkn.mod#${mkn.mod.version}
   if_arg:
     shared: -DMKN_KUL_SHARED
 
 - name: test
   parent: base
   main: test.cpp
-  if_dep:
-    nix: parse.yaml#${parse.yaml.version}[lib]
 
 - name: format
   mod: |
